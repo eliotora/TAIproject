@@ -74,7 +74,7 @@ def main():
         parser.print_help()
         print()
         print("Please choose mode")
-        sys.exit()
+        agent = None
 
     print(agent)
 

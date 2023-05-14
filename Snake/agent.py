@@ -177,7 +177,7 @@ class Agent:
             if not (0 <= new_pos[0] < 20  # Correspont à largeur de la grille
                     and 0 <= new_pos[1] < 20  # Correspond à hauteur de la grille
                     and grid[new_pos[0]][new_pos[1]] in [EMPTY_CHAR, FOOD_CHAR]
-                    ):  # Todo: trouver une solution pour que les "20" soit variable
+            ):  # Todo: trouver une solution pour que les "20" soit variable
                 alive = False
             else:
                 snake_cpy.insert(0, new_pos)
@@ -214,7 +214,7 @@ class Agent:
         coilness = 0
         for snake_part in snake:
             for direction in [RIGHT, LEFT, UP, DOWN]:
-                if grid[snake_part[0]+direction[0]][snake_part[1]+direction[1]] == SNAKE_CHAR:
+                if grid[snake_part[0] + direction[0]][snake_part[1] + direction[1]] == SNAKE_CHAR:
                     coilness += 1
         return coilness
 
