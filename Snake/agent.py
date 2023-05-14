@@ -5,6 +5,8 @@ import numpy as np
 from numpy import sqrt
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
+from tensorflow import constant
+from tensorflow import convert_to_tensor
 
 from gameModule import GUISnakeGame
 from gameModule import (
@@ -91,9 +93,23 @@ class Agent:
 
     def _predict_scores(self, states):
         input = np.array(states)
-        print(input)
-        predictions = self.model.predict(input)
-        print(predictions)
+        input = [[int(value) if isinstance(value, bool) else value for value in sublist] for sublist in input]
+
+        newInput=[]
+        # Split the tuples within the list
+        for i in range(len(input)):
+            temp=[]
+            for elem in input[i]:
+                if isinstance(elem, int):
+                    temp.append(elem)
+                else:
+                    for val in elem:
+                        temp.append(val)
+            newInput.append(temp)
+
+        tensorInput = convert_to_tensor(newInput)
+        predictions = self.model.predict(tensorInput)
+
         return [prediction[0] for prediction in predictions]
 
     def fill_memory(self, previous_state, next_state, reward, done):
@@ -151,14 +167,15 @@ class Agent:
         grid = state[0]
         head = state[3][0]
         for action in [RIGHT, DOWN, LEFT, UP]:
-            next_position = grid[head[0] + action[0]][head[1] + action[1]]
-            if next_position == WALL_CHAR and next_position == SNAKE_CHAR:
-                pass
-            new_grid, new_snake, foodEaten, alive = self.store(grid, state[3], action)
-            dist_to_food = self.foodCloseness(grid, new_snake[0])
-            coilness = self.computeCoilness(new_grid, new_snake)
-            # TODO: Implement hunger
-            states.append((action, [alive, dist_to_food, coilness]))
+            if isInGrid(len(grid), head, action):
+                next_position = grid[head[0] + action[0]][head[1] + action[1]]
+                if next_position == WALL_CHAR and next_position == SNAKE_CHAR:
+                    pass
+                new_grid, new_snake, foodEaten, alive = self.store(grid, state[3], action)
+                dist_to_food = self.foodCloseness(grid, new_snake[0])
+                coilness = self.computeCoilness(new_grid, new_snake)
+                # TODO: Implement hunger
+                states.append((action, [alive, dist_to_food, coilness]))
         return states
 
     def store(self, grid, snake, action):
@@ -171,13 +188,15 @@ class Agent:
         snake_cpy = [x[:] for x in snake]
         foodEaten = False
         alive = True
+        size = len(grid)
+
         if action is not None:
             head = snake[0]
             new_pos = (head[0] + action[0], head[1] + action[1])
-            if not (0 <= new_pos[0] < 20  # Correspont à largeur de la grille
-                    and 0 <= new_pos[1] < 20  # Correspond à hauteur de la grille
+            if not (0 <= new_pos[0] < size  # Correspont à largeur de la grille
+                    and 0 <= new_pos[1] < size  # Correspond à hauteur de la grille
                     and grid[new_pos[0]][new_pos[1]] in [EMPTY_CHAR, FOOD_CHAR]
-                    ):  # Todo: trouver une solution pour que les "20" soit variable
+            ):  # Todo: trouver une solution pour que les "20" soit variable  : done
                 alive = False
             else:
                 snake_cpy.insert(0, new_pos)
@@ -214,9 +233,18 @@ class Agent:
         coilness = 0
         for snake_part in snake:
             for direction in [RIGHT, LEFT, UP, DOWN]:
-                if grid[snake_part[0]+direction[0]][snake_part[1]+direction[1]] == SNAKE_CHAR:
-                    coilness += 1
+                if isInGrid(len(grid), snake_part, direction):
+                    if grid[snake_part[0] + direction[0]][snake_part[1] + direction[1]] == SNAKE_CHAR:
+                        coilness += 1
         return coilness
+
+
+def isInGrid(lenGrid, snake_part, direction):
+    if snake_part[0] + direction[0] != lenGrid and snake_part[0] + direction[0] != 0 \
+            and snake_part[1] + direction[1] != lenGrid and snake_part[1] + direction[1] != 0:
+        return True
+
+    return False
 
 
 def main():
