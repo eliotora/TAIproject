@@ -75,7 +75,6 @@ class Agent:
                 best_score = score
                 best_state = (action, state)
 
-        print(scores)
         return best_state[0]
 
     def act_best(self, states):
@@ -215,6 +214,7 @@ class Agent:
     def eat(self):  # TODO
         return
 
+
     def foodCloseness(self, grid, head):
         """
         Compute strait line distance to food
@@ -251,9 +251,11 @@ def main():
     game = GUISnakeGame()
     game.init_pygame()
     agent = Agent(input_size=4)
-
     while game.is_running():
         game.next_tick(agent)
+        # restart when dead
+        while not (game.is_alive()):
+            game.start_run()
 
     game.cleanup_pygame()
 
