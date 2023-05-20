@@ -35,21 +35,21 @@ def main():
         "--sshaped",
         action="store_true",
         help="S-Shaped algorithm: browses the whole "
-        "grid each time in an 'S' shape. Only "
-        "works if height of grid is even.",
+             "grid each time in an 'S' shape. Only "
+             "works if height of grid is even.",
     )
     group_algorithm.add_argument(
         "-a",
         "--astar",
         action="store_true",
         help="A* algorithm: classical A* algorithm, with "
-        "Manhattan distance as heuristic",
+             "Manhattan distance as heuristic",
     )
-    group_algorithm.add_argument( #TODO: finir le help
+    group_algorithm.add_argument(
         "-rl",
         "--reinforcement_learning",
-        action="store_true",
-        help="Reinforcement algorithm:",
+        help="Reinforcement algorithm:",  # TODO: finir le help
+        default="weights.h5.h5"
     )
 
     args = parser.parse_args()
@@ -68,7 +68,8 @@ def main():
                 weights, bias = pickle.load(f)
             agent = Snake(Dna(weights, bias))
         elif args.reinforcement_learning:
-            agent = Agent(input_size=4)
+            agent = Agent(input_size=20)
+            agent.load(Path(args.reinforcement_learning))
 
     else:
         parser.print_help()

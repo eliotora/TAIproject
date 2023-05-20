@@ -2,13 +2,15 @@ import random
 from collections import deque
 
 import numpy as np
+import tensorflow.python.ops.ragged.ragged_factory_ops
 from numpy import sqrt
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.utils import disable_interactive_logging
 from tensorflow import constant
 from tensorflow import convert_to_tensor
 
-from gameModule import GUISnakeGame
+from gameModule import GUISnakeGame, SnakeGame
 from gameModule import (
     RIGHT,
     LEFT,
@@ -39,6 +41,7 @@ class Agent:
             metrics=None,
             epsilon_min=0.1
     ):
+        disable_interactive_logging()
         if metrics is None:
             metrics = ["mean_squared_error"]
         self.input_size = input_size
@@ -61,21 +64,26 @@ class Agent:
             optimizer=self.opt_fct, loss=self.loss_fct, metrics=self.metrics
         )
 
-    def act_train(self, states):
+    def act_train(self, actions):
         if random.uniform(0, 1) < self.epsilon:
-            return random.choice(states)[0]
+            if len(actions) == 0:
+                print("No future states:", actions)
+                return None
+
+            return random.choice(actions)
 
         best_score = None
         best_state = None
-
-        scores = self._predict_scores([state for action, state in states])
-        for i, (action, state) in enumerate(states):
+        # scores = self._predict_scores([state for action, state in states]) old
+        scores = self._predict_scores(actions)
+        # for i, (action, state) in enumerate(states):
+        for i, action in enumerate(actions):
             score = scores[i]
             if not best_score or score > best_score:
                 best_score = score
-                best_state = (action, state)
+                best_state = action
 
-        return best_state[0]
+        return best_state
 
     def act_best(self, states):
         best_score = None
@@ -91,28 +99,40 @@ class Agent:
         return best_state[0]
 
     def _predict_scores(self, states):
-        input = np.array(states)
-        input = [[int(value) if isinstance(value, bool) else value for value in sublist] for sublist in input]
-
-        newInput=[]
-        # Split the tuples within the list
-        for i in range(len(input)):
-            temp=[]
-            for elem in input[i]:
-                if isinstance(elem, int):
-                    temp.append(elem)
+        pre_inputs = []
+        for state in states:
+            to_add = []
+            for elem in state:
+                if type(elem) == list or type(elem) == tuple:
+                    for i in elem:
+                        to_add.append(i)
                 else:
-                    for val in elem:
-                        temp.append(val)
-            newInput.append(temp)
+                    to_add.append(elem)
+            pre_inputs.append(to_add)
 
-        tensorInput = convert_to_tensor(newInput)
+        input = np.array(pre_inputs, dtype=object).astype('int32')
+        # input = [[int(value) if isinstance(value, bool) else value for value in sublist] for sublist in input]
+
+        tensorInput = convert_to_tensor(input)
         predictions = self.model.predict(tensorInput)
 
         return [prediction[0] for prediction in predictions]
 
-    def fill_memory(self, previous_state, next_state, reward, done):
-        self.memory.append((previous_state, next_state, reward, done))
+    # def fill_memory(self, previous_state, next_state, reward, done):
+    #     self.memory.append((previous_state, next_state, reward, done))
+
+    # def fill_memory(self, previous_state, action, reward, next_state, running):
+    #     self.memory.append((previous_state, action, reward, next_state, running))
+
+    def fill_memory(self, info):
+        pre_inputs = []
+        for elem in info:
+            if type(elem) == list or type(elem) == tuple:
+                for i in elem:
+                    pre_inputs.append(i)
+            else:
+                pre_inputs.append(elem)
+        self.memory.append(pre_inputs)
 
     def save(self, path: str):
         self.model.save_weights(path)
@@ -124,18 +144,23 @@ class Agent:
         if len(self.memory) < batch_size:
             return
         experiences = random.sample(self.memory, batch_size)
-
-        next_states = [experience[1] for experience in experiences]
-        scores = self._predict_scores(next_states)
+        # next_states = [experience[1] for experience in experiences]
+        scores = self._predict_scores(experiences)
         dataset = []
         target = []
         for i in range(batch_size):
-            previous_state, _, reward, done = experiences[i]
-            if not done:
+            experience = experiences[i]
+            previous_state = experience[:8]
+            action = experience[8:10]
+            reward = experience[10]
+            _ = experience[10:18]
+            running = experience[19]
+            if running:
                 next_q = self.gamma * scores[i] + reward
             else:
                 next_q = reward
-            dataset.append(previous_state)
+            # dataset.append(previous_state)
+            dataset.append(experience)
             target.append(next_q)
         self.model.fit(
             dataset, target, batch_size, epochs, verbose=0
@@ -144,9 +169,10 @@ class Agent:
             self.epsilon * self.decay, self.epsilon_min
         )
 
-    def choose_next_move(self, state):
-        states = self.get_possible_states(state)
-        return self.act_train(states)  # Remplacer par act_best
+    def choose_next_move(self, game: SnakeGame):
+        # states = self.get_possible_states(state)
+        actions = self.get_actions(game)
+        return self.act_train(actions)[1]  # TODO: Remplacer par act_best
 
     def get_possible_states(self, state):
         """
@@ -174,12 +200,70 @@ class Agent:
                 dist_to_food = self.foodCloseness(grid, new_snake[0])
                 coilness = self.computeCoilness(new_grid, new_snake)
                 # TODO: Implement hunger
-                states.append((action, [alive, dist_to_food, coilness]))
+                # states.append((action, (int(alive), dist_to_food[0], dist_to_food[1], coilness)))
+                states.append((action, (dist_to_food[0], dist_to_food[1], coilness)))
+        if len(states) == 0:
+            # states.append((RIGHT, (int(False), self.foodCloseness(grid, head)[0], self.foodCloseness(grid, head)[1], self.computeCoilness(grid, state[3]))))
+            states.append((RIGHT, (self.foodCloseness(grid, head)[0], self.foodCloseness(grid, head)[1],
+                                   self.computeCoilness(grid, state[3]))))
         return states
 
-    def store(self, grid, snake, action):
+    def get_state_properties(self, game: SnakeGame):  # old
+        grid, score, alive, snake = game.get_state()
+
+        dist_to_food = self.foodCloseness(grid, snake[0])
+        coilness = self.computeCoilness(grid, snake)
+
+        # return alive, dist_to_food[0], dist_to_food[1], coilness
+        return dist_to_food[0], dist_to_food[1]
+
+    def get_state(self, grid, head):
+        """
+        :param head:
+        :param grid:
+        :return: [dangerDOWN, dangerUP, dangerRIGHT, dangerLEFT, foodDOWN, foodUP, foodRIGHT, foodLEFT]
+        """
+        state = [int(not isInGrid(len(grid), head, direction) or
+                     grid[head[0] + direction[0]][head[1] + direction[1]] == WALL_CHAR or
+                     grid[head[0] + direction[0]][head[1] + direction[1]] == SNAKE_CHAR)
+                 for direction in [DOWN, UP, RIGHT, LEFT]]
+
+        # Find the position of the food
+        food_pos = (0, 0)
+        for i, row in enumerate(grid):
+            for j, content in enumerate(row):
+                if content == FOOD_CHAR:
+                    food_pos = (i, j)
+
+        state.append(int(food_pos[0] > head[0]))
+        state.append(int(food_pos[0] < head[0]))
+        state.append(int(food_pos[1] > head[1]))
+        state.append(int(food_pos[1] < head[1]))
+
+        return state
+
+    def get_actions(self, game: SnakeGame):
+        grid = game.grid
+        head = game.snake[0]
+        current_state = self.get_state(grid, head)
+        possible_actions = []
+
+        for action in [DOWN, UP, RIGHT, LEFT]:
+            if isInGrid(len(grid), head, action):
+                new_grid, new_snake, foodEaten, alive = self.store(grid, game.snake, action, game)
+                reward = 10 if foodEaten else -10 if not alive else 0
+                running = int(alive)
+                new_state = self.get_state(new_grid, new_snake[0])
+
+                possible_actions.append([current_state, action, reward, new_state, running])
+
+        return possible_actions
+
+    def store(self, grid, snake, action, game):
         """
         Make a deep copy of the board and act the action given
+        :param snake:
+        :param grid:
         :param action: The action to be taken
         :return: the new grid
         """
@@ -195,13 +279,15 @@ class Agent:
             if not (0 <= new_pos[0] < size  # Correspont à largeur de la grille
                     and 0 <= new_pos[1] < size  # Correspond à hauteur de la grille
                     and grid[new_pos[0]][new_pos[1]] in [EMPTY_CHAR, FOOD_CHAR]
-            ):  # Todo: trouver une solution pour que les "20" soit variable  : done
+            ):
                 alive = False
             else:
                 snake_cpy.insert(0, new_pos)
                 grid_cpy[new_pos[0]][new_pos[1]] = SNAKE_CHAR
                 if grid[new_pos[0]][new_pos[1]] == FOOD_CHAR:
                     foodEaten = True
+                    random_cell = game.get_random_cell()
+                    grid_cpy[random_cell[0]][random_cell[1]] = FOOD_CHAR
                 else:
                     tail = snake_cpy.pop()
                     grid_cpy[tail[0]][tail[1]] = EMPTY_CHAR
@@ -213,7 +299,6 @@ class Agent:
 
     def eat(self):  # TODO
         return
-
 
     def foodCloseness(self, grid, head):
         """
@@ -245,6 +330,29 @@ def isInGrid(lenGrid, snake_part, direction):
         return True
 
     return False
+
+
+class AgentTrainingGame(SnakeGame):
+
+    def __init__(self, learning_agent: Agent):
+        super().__init__()
+        self.learning_agent = learning_agent
+        self.score = 0
+
+    def next_tick(self):
+        if self.is_alive():
+            actions = self.learning_agent.get_actions(self)
+            infos = self.learning_agent.act_train(actions)
+            self.set_next_move(infos[1])
+
+            if self.foodEaten:
+                self.learning_agent.eat()
+            self.move_snake()
+            # return self.learning_agent.get_state_properties(self) old
+            return infos
+
+        # return self.learning_agent.get_state_properties(self) old
+        return self.learning_agent.get_state(self.grid, self.snake[0])
 
 
 def main():

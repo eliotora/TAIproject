@@ -116,6 +116,16 @@ optional arguments:
 
 ```
 
+
+# RL
+## Launch
+```bash
+poetry run python main.py --ai -rl weights2.h5.h5
+```
+## Training
+```bash
+poetry run python train_rl.py -e 1000 -w weights2.h5
+```
 ![snake screen](../assets/img/snake.png)
 
 [ia-gh]: https://github.com/iridia-ulb/AI-book
