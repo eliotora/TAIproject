@@ -48,7 +48,6 @@ def main():
     group_algorithm.add_argument( #TODO: finir le help
         "-rl",
         "--reinforcement_learning",
-        action="store_true",
         help="Reinforcement algorithm:",
     )
 
@@ -68,7 +67,8 @@ def main():
                 weights, bias = pickle.load(f)
             agent = Snake(Dna(weights, bias))
         elif args.reinforcement_learning:
-            agent = Agent(input_size=4)
+            agent = Agent(input_size=8)
+            agent.load(args.reinforcement_learning)
 
     else:
         parser.print_help()

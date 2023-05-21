@@ -1,12 +1,12 @@
 import random
 from collections import deque
+import pygame
 
 import numpy as np
 from numpy import sqrt
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+import tensorflow as tf
 
-from gameModule import GUISnakeGame
+from gameModule import GUISnakeGame, SnakeGame
 from gameModule import (
     RIGHT,
     LEFT,
@@ -27,16 +27,19 @@ class Agent:
 
     def __init__(
             self,
-            input_size=4,
+            input_size=8,
             epsilon=0.9,
-            decay=0.9995,
-            gamma=0.95,
+            decay=0.99,
+            gamma=0.9,
             loss_fct="mse",
             opt_fct="adam",
-            mem=2000,
+            mem=1000,
             metrics=None,
-            epsilon_min=0.1
+            epsilon_min=0.01
     ):
+        tf.keras.utils.disable_interactive_logging()
+        self.n_games = 0
+
         if metrics is None:
             metrics = ["mean_squared_error"]
         self.input_size = input_size
@@ -50,54 +53,128 @@ class Agent:
         self.moves = []
         self.epsilon_min = epsilon_min
 
-        self.model = Sequential()
-        self.model.add(Dense(64, activation="relu", input_shape=(input_size,)))
-        self.model.add(Dense(64, activation="relu"))
-        self.model.add(Dense(32, activation="relu"))
-        self.model.add(Dense(1, activation="linear"))
+        self.model = tf.keras.models.Sequential()
+        self.model.add(tf.keras.layers.Dense(64, activation="relu", input_shape=(input_size,)))
+        self.model.add(tf.keras.layers.Dense(64, activation="relu"))
+        self.model.add(tf.keras.layers.Dense(32, activation="relu"))
+        self.model.add(tf.keras.layers.Dense(4, activation="linear"))
         self.model.compile(
             optimizer=self.opt_fct, loss=self.loss_fct, metrics=self.metrics
         )
 
-    def act_train(self, states):
+    def get_state(self, game: SnakeGame):
+        head = game.snake[0]
+
+        state = [
+            # Danger Around head
+            game.is_collision((head[0] + RIGHT[0], head[1] + RIGHT[1])),
+            game.is_collision((head[0] + DOWN[0], head[1] + DOWN[1])),
+            game.is_collision((head[0] + LEFT[0], head[1] + LEFT[1])),
+            game.is_collision((head[0] + UP[0], head[1] + UP[1])),
+
+            # Food location
+            game.food[0] < head[0],  # food left
+            game.food[0] > head[0],  # food right
+            game.food[1] < head[1],  # food up
+            game.food[1] > head[1]  # food down
+        ]
+
+        return np.array(state, dtype=int)
+
+    def train_long_memory(self, batch_size=64):
+        if len(self.memory) > batch_size:
+            sample = random.sample(self.memory, batch_size)
+        else:
+            sample = self.memory
+
+        states, actions, rewards, next_states, dones = zip(*sample)
+        self.training_montage(states, actions, rewards, next_states, dones)
+        self.epsilon = max(
+            self.epsilon * self.decay, self.epsilon_min
+        )
+        print(self.epsilon)
+
+    def training_montage(self, state, action, reward, next_state, done, epochs=1):
+        # if len(self.memory) < 64:
+        #     return
+        state = tf.convert_to_tensor(state, dtype=tf.float32)
+        action = tf.convert_to_tensor(action, dtype=tf.int32)
+        reward = tf.convert_to_tensor(reward, dtype=tf.float32)
+        next_state = tf.convert_to_tensor(next_state, dtype=tf.float32)
+
+        if len(state.shape) == 1:
+            state = tf.expand_dims(state, 0)
+            action = tf.expand_dims(action, 0)
+            reward = tf.expand_dims(reward, 0)
+            next_state = tf.expand_dims(next_state, 0)
+            done = (done,)
+
+        scores = self._predict_scores(next_state)  # Q values with current state
+        # print(scores.shape, len(done), scores)
+        dataset = []
+        target = []
+        for i in range(len(done)):
+            next_q = self.gamma * scores[i] + reward[i]
+            # print(scores[i], reward[i], scores[i]+reward[i])
+            # if not done[i]:
+            #     next_q = self.gamma * scores[i] + reward[i]
+            #     print(scores[i], reward[i], scores[i]+reward[i])
+            # else:
+            #     next_q = reward[i]
+            #     print(next_q)
+
+            # print(state[i], next_q)
+            dataset.append(list(state[i]))
+            target.append(np.array(next_q))
+        dataset = tf.convert_to_tensor(dataset)
+        # print(target)
+        target = tf.convert_to_tensor(target)
+        # print("Shapes: ", dataset.shape, target.shape, len(done))
+        # print("Dataset: ", list(dataset[0]), dataset)
+        # print("target: ", np.array(target[0]), target)
+        self.model.fit(
+            dataset, target, len(done), epochs, verbose=0
+        )
+
+    def act_train(self, state):
+        # eps = 80 - self.n_games
+        # if random.randint(0,200) < eps:
+        #     return random.choice([RIGHT, LEFT, UP, DOWN])
         if random.uniform(0, 1) < self.epsilon:
-            return random.choice(states)[0]
+            return random.choice([RIGHT, LEFT, UP, DOWN])
+        else:
+            state0 = tf.convert_to_tensor(state, dtype=tf.float32)
+            prediction = self._predict_scores(state0)
+            # print(prediction)
+            # print(tf.math.argmax(prediction[0]))
+            move = int(tf.math.argmax(prediction[0]))
+            final_move = [RIGHT, LEFT, UP, DOWN][move]
 
-        best_score = None
-        best_state = None
+        return final_move
 
-        scores = self._predict_scores([state for action, state in states])
-        for i, (action, state) in enumerate(states):
-            score = scores[i]
-            if not best_score or score > best_score:
-                best_score = score
-                best_state = (action, state)
+    def act_best(self, state):
 
-        print(scores)
-        return best_state[0]
+        state0 = tf.convert_to_tensor(state, dtype=tf.float32)
+        prediction = self._predict_scores(state0)
+        move = int(tf.math.argmax(prediction[0]))
+        final_move = [RIGHT, LEFT, UP, DOWN][move]
 
-    def act_best(self, states):
-        best_score = None
-        best_state = None
-
-        scores = self._predict_scores([state for action, state in states])
-        for i, (action, state) in enumerate(states):
-            score = scores[i]
-            if not best_score or score > best_score:
-                best_score = score
-                best_state = (action, state)
-
-        return best_state[0]
+        return final_move
 
     def _predict_scores(self, states):
-        input = np.array(states)
-        print(input)
+        input = tf.cast(tf.constant(states), dtype=tf.float32)
+        # print(input)
+        if input.ndim ==1:
+            input = tf.expand_dims(input, axis=0)
+        # print(input)
+        # input = np.array(states)
         predictions = self.model.predict(input)
-        print(predictions)
-        return [prediction[0] for prediction in predictions]
+        # print(predictions)
+        return predictions
+        # return [prediction[0] for prediction in predictions]
 
-    def fill_memory(self, previous_state, next_state, reward, done):
-        self.memory.append((previous_state, next_state, reward, done))
+    def fill_memory(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
 
     def save(self, path: str):
         self.model.save_weights(path)
@@ -105,33 +182,9 @@ class Agent:
     def load(self, path: str):
         self.model.load_weights(path)
 
-    def training_montage(self, batch_size=64, epochs=1):
-        if len(self.memory) < batch_size:
-            return
-        experiences = random.sample(self.memory, batch_size)
-
-        next_states = [experience[1] for experience in experiences]
-        scores = self._predict_scores(next_states)
-        dataset = []
-        target = []
-        for i in range(batch_size):
-            previous_state, _, reward, done = experiences[i]
-            if not done:
-                next_q = self.gamma * scores[i] + reward
-            else:
-                next_q = reward
-            dataset.append(previous_state)
-            target.append(next_q)
-        self.model.fit(
-            dataset, target, batch_size, epochs, verbose=0
-        )
-        self.epsilon = max(
-            self.epsilon * self.decay, self.epsilon_min
-        )
-
-    def choose_next_move(self, state):
-        states = self.get_possible_states(state)
-        return self.act_train(states)  # Remplacer par act_best
+    def choose_next_move(self, game):
+        state = self.get_state(game)
+        return self.act_best(state)  # Remplacer par act_best
 
     def get_possible_states(self, state):
         """
@@ -177,7 +230,7 @@ class Agent:
             if not (0 <= new_pos[0] < 20  # Correspont à largeur de la grille
                     and 0 <= new_pos[1] < 20  # Correspond à hauteur de la grille
                     and grid[new_pos[0]][new_pos[1]] in [EMPTY_CHAR, FOOD_CHAR]
-                    ):  # Todo: trouver une solution pour que les "20" soit variable
+            ):  # Todo: trouver une solution pour que les "20" soit variable
                 alive = False
             else:
                 snake_cpy.insert(0, new_pos)
@@ -214,10 +267,37 @@ class Agent:
         coilness = 0
         for snake_part in snake:
             for direction in [RIGHT, LEFT, UP, DOWN]:
-                if grid[snake_part[0]+direction[0]][snake_part[1]+direction[1]] == SNAKE_CHAR:
+                if grid[snake_part[0] + direction[0]][snake_part[1] + direction[1]] == SNAKE_CHAR:
                     coilness += 1
         return coilness
 
+
+class ReinforcementTrainingGame(GUISnakeGame):
+    def __init__(self, reward_live=0.1, reward_eat=10, reward_dead=-10):
+        super().__init__()
+        # self.init_pygame()
+        self.mps = 50
+        self.reward_live = reward_live
+        self.reward_eat = reward_eat
+        self.reward_dead = reward_dead
+
+    def next_tick(self, action):
+        # for event in pygame.event.get():
+        #     pass
+        reward = 0
+        self.next_move = action
+        if self.is_alive():
+            reward = self.reward_live
+            self.move_snake()
+            if self.foodEaten:
+                reward = self.reward_eat
+            elif not self.is_alive():
+                reward = self.reward_dead
+        # self.draw()
+        # self.clock.tick(30)
+        # self.frame += 1
+        reward = [reward if pos_act == action else 0 for pos_act in [RIGHT, LEFT, UP, DOWN] ]
+        return reward, not self.is_alive(), self.score
 
 def main():
     game = GUISnakeGame()

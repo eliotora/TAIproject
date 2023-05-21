@@ -1,0 +1,23 @@
+first training:
+epsilon=0.9
+decay=0.99
+gamma=0.9
+mem=1000
+epsilon_min=0.01
+
+rewards:
+eat=100
+dead=-100
+live=0.1
+
+subsequent training:
+epsilon=0.005
+decay=0.99
+gamma=0.9
+mem=1000
+epsilon_min=0.005
+
+rewards:
+eat=100
+dead=-1000
+live=0
