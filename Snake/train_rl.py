@@ -64,7 +64,7 @@ def training():
         print(values)
         record = int(values[1])
         iteration = int(values[2])+1
-        game = ReinforcementTrainingGame(reward_live=0.01, reward_eat=10, reward_dead=-100)
+        game = ReinforcementTrainingGame(reward_live=0, reward_eat=10, reward_dead=-100)
     else:
         agent = Agent()
         game = ReinforcementTrainingGame()
@@ -94,7 +94,7 @@ def training():
 
         if score > record:
             record = score
-            agent.model.save(f"try2/{args.weights}_{record}_{iteration}.h5")
+            agent.model.save(f"try3/{args.weights}_{record}_{iteration}.h5")
 
         print('Game', agent.n_games, 'Score', score, 'Record', record, 'Move number', move_nbr)
         #
@@ -105,7 +105,7 @@ def training():
         # plot(plot_scores, plot_mean_score)
 
     print(mean_score)
-    agent.model.save(f"try2/{args.weights}_{record}_{iteration}.h10")
+    agent.model.save(f"try3/{args.weights}_{record}_{iteration}.h10")
 
 
 

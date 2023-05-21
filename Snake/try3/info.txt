@@ -20,8 +20,9 @@ epsilon_min=0.005
 rewards:
 eat=10
 dead=-100
-live=0.01
+live=0
 
-gen0: average score = 1.42, best score of resulting weights = 37 (outside training)
-gen1: not run till the end (199 games) -> weight_31_1.h5
-gen2: crash no more memory -> Reduce gain on live to 0?
+gen1: (from weight_18_0.h5) average score = 9.95 best score out of training 44
+gen2: average score = 12.43
+gen3: no better record, average score = 13.99
+gen4: no improvement, average score = 5.54
