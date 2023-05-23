@@ -1,0 +1,13 @@
+first training:
+epsilon=0.9
+decay=0.9995
+gamma=0.99
+mem=1000
+epsilon_min=0.01
+
+rewards:
+eat=10
+dead=-10
+live=0
+
+gen0: more possible runs cause memory leaks are done

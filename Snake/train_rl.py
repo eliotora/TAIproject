@@ -71,7 +71,7 @@ def training():
         iteration = int(values[2]) + 1
         game = ReinforcementTrainingGame(reward_live=0, reward_eat=10, reward_dead=-100)
     else:
-        agent = Agent()
+        agent = Agent(gamma=0.9, decay=0.99)
         game = ReinforcementTrainingGame()
     game.start_run()
     for i in tqdm(range(args.episodes)):
@@ -81,6 +81,7 @@ def training():
             state_old = agent.get_state(game)
 
             final_move = agent.act_train(state_old)
+            agent.direction = final_move
 
             reward, done, score = game.next_tick(final_move)
 
@@ -102,11 +103,14 @@ def training():
             for stat in top_stats[:10]:
                 print(stat)
 
+        if i % 200 == 0:
+            agent.model.save(f"try7/{args.weights}_{record}_{iteration}_{i}.h5")
+
         agent.train_long_memory()
 
         if score > record:
             record = score
-            agent.model.save(f"try4/{args.weights}_{record}_{iteration}.h5")
+            agent.model.save(f"try7/{args.weights}_{record}_{iteration}.h5")
 
         print('Game', agent.n_games, 'Score', score, 'Record', record, 'Move number', move_nbr)
         #
@@ -118,7 +122,7 @@ def training():
 
 
     print(mean_score)
-    agent.model.save(f"try4/{args.weights}_{record}_{iteration}_end.h5")
+    agent.model.save(f"try7/{args.weights}_{record}_{iteration}_end.h5")
 
 
 def plot(scores, mean_scores):

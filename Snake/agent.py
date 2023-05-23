@@ -29,7 +29,7 @@ class Agent:
             self,
             input_size=12,
             epsilon=0.9,
-            decay=0.99,
+            decay=0.9995,
             gamma=0.9,
             loss_fct="mse",
             opt_fct="adam",
@@ -39,6 +39,7 @@ class Agent:
     ):
         tf.keras.utils.disable_interactive_logging()
         self.n_games = 0
+        self.direction = RIGHT
 
         if metrics is None:
             metrics = ["mean_squared_error"]
@@ -54,9 +55,9 @@ class Agent:
         self.epsilon_min = epsilon_min
 
         self.model = tf.keras.models.Sequential()
-        self.model.add(tf.keras.layers.Dense(64, activation="relu", input_shape=(input_size,)))
-        self.model.add(tf.keras.layers.Dense(64, activation="relu"))
-        self.model.add(tf.keras.layers.Dense(32, activation="relu"))
+        self.model.add(tf.keras.layers.Dense(64, activation="linear", input_shape=(input_size,)))
+        # self.model.add(tf.keras.layers.Dense(64, activation="relu"))
+        self.model.add(tf.keras.layers.Dense(32, activation="linear"))
         self.model.add(tf.keras.layers.Dense(4, activation="linear"))
         self.model.compile(
             optimizer=self.opt_fct, loss=self.loss_fct, metrics=self.metrics
@@ -68,28 +69,28 @@ class Agent:
         state = [
             # Danger Around head
             game.is_collision((head[0] + RIGHT[0], head[1] + RIGHT[1])),
-            game.is_collision((head[0] + DOWN[0], head[1] + DOWN[1])),
             game.is_collision((head[0] + LEFT[0], head[1] + LEFT[1])),
             game.is_collision((head[0] + UP[0], head[1] + UP[1])),
+            game.is_collision((head[0] + DOWN[0], head[1] + DOWN[1])),
 
             # Food location
-            game.food[0] < head[0],  # food left
-            game.food[0] > head[0],  # food right
-            game.food[1] < head[1],  # food up
-            game.food[1] > head[1],  # food down
+            game.food[1] > head[1],  # food right
+            game.food[1] < head[1],  # food left
+            game.food[0] < head[0],  # food up
+            game.food[0] > head[0],  # food down
 
             # How many snakes bit in each direction
             len([part for part in game.snake if part[0] == head[0] and part[1] > head[1]]),  # Right [0, 1]
-            len([part for part in game.snake if part[0] > head[0] and part[1] == head[1]]),  # Down [1, 0]
             len([part for part in game.snake if part[0] == head[0] and part[1] < head[1]]),  # Left [0, -1]
-            len([part for part in game.snake if part[0] < head[0] and part[1] == head[1]])  # Up [-1, 0]
+            len([part for part in game.snake if part[0] < head[0] and part[1] == head[1]]),  # Up [-1, 0]
+            len([part for part in game.snake if part[0] > head[0] and part[1] == head[1]])  # Down [1, 0]
 
             # Idea: Distance to food: reward if it lowers
         ]
 
         return np.array(state, dtype=int)
 
-    def train_long_memory(self, batch_size=64):
+    def train_long_memory(self, batch_size=128):
         if len(self.memory) > batch_size:
             sample = random.sample(self.memory, batch_size)
         else:
@@ -142,7 +143,9 @@ class Agent:
     def act_train(self, state):
 
         if random.uniform(0, 1) < self.epsilon:
-            return random.choice([RIGHT, LEFT, UP, DOWN])
+            possibilities = [RIGHT, LEFT, UP, DOWN]
+            possibilities.remove(self.direction)
+            return random.choice(possibilities)
         else:
             state0 = tf.convert_to_tensor(state, dtype=tf.float32)
             prediction = self._predict_scores(state0)
@@ -155,6 +158,7 @@ class Agent:
 
         state0 = tf.convert_to_tensor(state, dtype=tf.float32)
         prediction = self._predict_scores(state0)
+        print(prediction)
         move = int(tf.math.argmax(prediction[0]))
         final_move = [RIGHT, LEFT, UP, DOWN][move]
 
@@ -180,7 +184,8 @@ class Agent:
 
     def choose_next_move(self, game):
         state = self.get_state(game)
-        return self.act_best(state)
+        self.direction = self.act_best(state)
+        return self.direction
 
     def reset_state(self):
         return
@@ -190,7 +195,7 @@ class Agent:
 
 
 class ReinforcementTrainingGame(SnakeGame):
-    def __init__(self, reward_live=0.1, reward_eat=10, reward_dead=-10):
+    def __init__(self, reward_live=0, reward_eat=10, reward_dead=-10):
         super().__init__()
         self.reward_live = reward_live
         self.reward_eat = reward_eat
@@ -208,7 +213,7 @@ class ReinforcementTrainingGame(SnakeGame):
             elif not self.is_alive():
                 reward = self.reward_dead
 
-        reward = [reward if pos_act == action else 0 for pos_act in [RIGHT, LEFT, UP, DOWN] ]
+        reward = [reward if pos_act == action else 0 for pos_act in [RIGHT, LEFT, UP, DOWN]]
         return reward, not self.is_alive(), self.score
 
 def main():
