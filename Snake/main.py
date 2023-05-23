@@ -67,7 +67,7 @@ def main():
                 weights, bias = pickle.load(f)
             agent = Snake(Dna(weights, bias))
         elif args.reinforcement_learning:
-            agent = Agent(input_size=8)
+            agent = Agent(input_size=12)
             agent.load(args.reinforcement_learning)
 
     else:
