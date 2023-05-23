@@ -55,9 +55,10 @@ class Agent:
         self.epsilon_min = epsilon_min
 
         self.model = tf.keras.models.Sequential()
-        self.model.add(tf.keras.layers.Dense(64, activation="linear", input_shape=(input_size,)))
+        self.model.add(tf.keras.layers.Dense(64, activation="relu", input_shape=(input_size,)))
         # self.model.add(tf.keras.layers.Dense(64, activation="relu"))
-        self.model.add(tf.keras.layers.Dense(32, activation="linear"))
+        self.model.add(tf.keras.layers.Dense(32, activation="relu"))
+        self.model.add(tf.keras.layers.Dense(16, activation="relu"))
         self.model.add(tf.keras.layers.Dense(4, activation="linear"))
         self.model.compile(
             optimizer=self.opt_fct, loss=self.loss_fct, metrics=self.metrics

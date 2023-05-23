@@ -104,13 +104,13 @@ def training():
                 print(stat)
 
         if i % 200 == 0:
-            agent.model.save(f"try7/{args.weights}_{record}_{iteration}_{i}.h5")
+            agent.model.save(f"try8/{args.weights}_{record}_{iteration}_{i}.h5")
 
         agent.train_long_memory()
 
         if score > record:
             record = score
-            agent.model.save(f"try7/{args.weights}_{record}_{iteration}.h5")
+            agent.model.save(f"try8/{args.weights}_{record}_{iteration}.h5")
 
         print('Game', agent.n_games, 'Score', score, 'Record', record, 'Move number', move_nbr)
         #
@@ -122,7 +122,7 @@ def training():
 
 
     print(mean_score)
-    agent.model.save(f"try7/{args.weights}_{record}_{iteration}_end.h5")
+    agent.model.save(f"try8/{args.weights}_{record}_{iteration}_end.h5")
 
 
 def plot(scores, mean_scores):

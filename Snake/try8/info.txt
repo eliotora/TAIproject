@@ -10,5 +10,5 @@ eat=10
 dead=-10
 live=0
 
-Changes: 256 relu
+Changes: Neurons 64,32,16 relu
 
