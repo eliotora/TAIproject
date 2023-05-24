@@ -17,6 +17,7 @@ class Agent:
     """
     The Deep Q-learning agent
     It will interact with the Snake environment
+    It can be trained using the train_rl.py file or be run by the game given a weight file
     """
 
     def __init__(
@@ -62,8 +63,8 @@ class Agent:
         """
         This function take the snake game as an input, and compute different information about the
         snake environment, that will be fed to the neural network.
-        @param game: snake game object
-        @return: information the neural network take as input (representing a state)
+        :param game: snake game object
+        :return: information the neural network take as input (representing a state)
         """
         head = game.snake[0]
 
@@ -97,8 +98,8 @@ class Agent:
     def train_long_memory(self, batch_size=64):
         """
         This function extract previous instances to upgrade the behavior, and update epsilon
-        @param batch_size: Number of instance used the learning
-        @return: none
+        :param batch_size: Number of instance used the learning
+        :return: none
         """
         if len(self.memory) > batch_size:
             sample = random.sample(self.memory, batch_size)
@@ -114,11 +115,12 @@ class Agent:
     def training_montage(self, state, reward, next_state, done):
         """
         This function allow the learning of our agent using Q-learning and the neural network
-        @param state: Information of the environment
-        @param reward: Reward of the action done
-        @param next_state: New state of the snake after an action
-        @param done: Boolean about the state of the game (True when game finished)
-        @return: None
+        Parameters can be a single value or a batch of values in a numpy array
+        :param state: Information of the environment
+        :param reward: Reward of the action done
+        :param next_state: New state of the snake after an action
+        :param done: Boolean about the state of the game (True when game finished)
+        :return: None
         """
         state = tf.convert_to_tensor(state, dtype=tf.float32)
         reward = tf.convert_to_tensor(reward, dtype=tf.float32)
@@ -170,8 +172,8 @@ class Agent:
     def act_best(self, state):
         """
         Use the best possible prediction with  the model (no randomness)
-        @param state: Information about the environment of the snake
-        @return: next move
+        :param state: Information about the environment of the snake
+        :return: next move
         """
         state0 = tf.convert_to_tensor(state, dtype=tf.float32)
         prediction = self._predict_scores(state0)
@@ -183,36 +185,65 @@ class Agent:
     def _predict_scores(self, states):
         """
         Predict the new action of the snake using the neural network
-        @param states: Information about the environment of the snake
-        @return: Possible moves with ponderation
+        :param states: Information about the environment of the snake
+        :return: Possible moves with ponderation
         """
         input = tf.cast(tf.constant(states), dtype=tf.float32)
         if input.ndim == 1:
             input = tf.expand_dims(input, axis=0)
 
         predictions = self.model.predict_on_batch(input)
-        # predictions = self.model.predict(input)
+        # predictions = self.model.predict(input) Causes memory leaks over time
         return predictions
 
     def fill_memory(self, state, action, reward, next_state, done):
+        """
+        Fill the buffer with previous experiences
+        :param state:original state
+        :param action: the action chosen by the network
+        :param reward:reward received
+        :param next_state:state after the action
+        :param done:boolean value to signify whether the end of an episode is reached
+        """
         self.memory.append((state, action, reward, next_state, done))
 
     def save(self, path: str):
+        """
+        save the weights of the network
+        :param path: filepath where weights are saved
+        """
         self.model.save_weights(path)
 
     def load(self, path: str):
+        """
+        load the weights of the network
+        :param path: filepath where weights are saved
+        """
         self.model.load_weights(path)
 
     def choose_next_move(self, game):
+        """
+        Return the move chosen by the agent
+        :param game: the game object in order to access the state
+        :return: the move chosen in [RIGHT, LEFT, UP, DOWN]
+        """
         state = self.get_state(game)
         self.direction = self.act_best(state)
         return self.direction
 
     def reset_state(self):
-        return
+        """
+        This function is useless here, it is a placeholder for a function needed in the other
+        algorithm.
+        """
+        pass
 
     def eat(self):
-        return
+        """
+        This function is useless here, it is a placeholder for a function needed in the other
+        algorithm.
+        """
+        pass
 
 
 class ReinforcementTrainingGame(SnakeGame):
