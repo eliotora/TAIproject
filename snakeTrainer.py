@@ -110,7 +110,7 @@ class SnakesManager:
         # If this is a new game score
         if str(self.bestGenScore) + ".snake" not in files:
             with open(
-                Path("weights") / Path(str(self.bestGenScore) + ".snake"), "wb"
+                    Path("weights") / Path(str(self.bestGenScore) + ".snake"), "wb"
             ) as f:
                 pickle.dump(
                     (self.bestSnake.dna.weights, self.bestSnake.dna.bias), f
