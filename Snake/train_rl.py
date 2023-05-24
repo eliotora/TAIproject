@@ -1,9 +1,14 @@
 import argparse
 import sys
 from pathlib import Path
+from IPython import display
 from tqdm import tqdm
-from agent import Agent, AgentTrainingGame
-from gameModule import SnakeGame
+import matplotlib.pyplot as plt
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+
+from agent import Agent, ReinforcementTrainingGame
 
 
 def training():
@@ -27,6 +32,12 @@ def training():
         help="Number of episodes to train on (default=10000).",
         default=10000,
     )
+    parser.add_argument(
+        "-rt",
+        "--retrain",
+        type=str,
+        help="Train from a saved file",
+    )
 
     args = parser.parse_args()
     if Path(args.weights).is_file():
@@ -40,51 +51,64 @@ def training():
             sys.exit()
 
     # --- Initialisation --- #
-    agent = Agent(input_size=20)
-    game = AgentTrainingGame(agent)
-    saving_weights_each_steps = 1000
-    print("\n >>> Begin Epsilon = " + str(agent.epsilon))
-    print(" >>> Decay = " + str(agent.decay))
-
-
-    # state = [ grid, score, alive, snake ]
-
-    # Episode LOOP
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    score_distibution = [0 for i in range(200)]
+    total_score = 0
+    record = 0
+    score = 0
+    iteration = 0
+    if args.retrain:
+        agent = Agent(epsilon=0, epsilon_min=0)
+        agent.load(args.retrain)
+        file_name = args.retrain.split(".")[0]
+        values = file_name.split("_")
+        print(values)
+        record = int(values[1])
+        iteration = int(values[2]) + 1
+        game = ReinforcementTrainingGame(reward_live=0, reward_eat=10, reward_dead=-10)
+    else:
+        agent = Agent(gamma=0.9, decay=0.99)
+        game = ReinforcementTrainingGame()
+    game.start_run()
     for i in tqdm(range(args.episodes)):
-        # Game and board reset
-        running = True
-        print(f"Start game {i}")
+        done = False
+        move_nbr = 0
+        while not done:
+            state_old = agent.get_state(game)
+
+            final_move = agent.act_train(state_old)
+            agent.direction = final_move
+
+            reward, done, score = game.next_tick(final_move)
+
+            state_new = agent.get_state(game)
+
+            # agent.training_montage(state_old, final_move, reward, state_new, done)
+
+            agent.fill_memory(state_old, final_move, reward, state_new, done)
+
+            move_nbr += 1
+
+        score_distibution[score] += 1
         game.start_run()
-        # previous_state = agent.get_state_properties(game) old
+        agent.n_games += 1
 
-        while running:
-            # Performs the next training action
-            # actual_state = game.next_tick()
-            infos = game.next_tick()
+        # if i % 200 == 0:
+        #     agent.model.save(f"try12/{args.weights}_{record}_{iteration}_{i}.h5")
 
-            # done = actual_state[2]  # Snake alive or not
-            # running = game.is_alive()
-            # reward = actual_state[1]  # reward = new_score
-            # Saves the move in memory
-            # agent.fill_memory(previous_state, actual_state, reward, running) Old
-            running = game.is_alive()
-            # agent.fill_memory(previous_state, actual_state, reward, running)
-            agent.fill_memory(infos)
+        # agent.train_long_memory()
 
-            # Resets iteration for the next move
-            # previous_state = actual_state
-        print(f"Game {i} over with score: {game.score}")
-        # train the weights of the NN after the episode
-        agent.training_montage()
+        # if score > record:
+        #     record = score
+        #     agent.model.save(f"try12/{args.weights}_{record}_{iteration}.h5")
 
-        if i % saving_weights_each_steps == 0:
-            agent.save(f"weights_temp_{i}.h5")
+        # print('Game', agent.n_games, 'Score', score, 'Record', record, 'Move number', move_nbr)
+        total_score += score
+        mean_score = total_score / agent.n_games
 
-
-
-    agent.save(f"{args.weights}.h5")
-
-    print("\n >>> End Epsilon = " + str(agent.epsilon))
+    print(score_distibution)
+    print(mean_score)
+    agent.model.save(f"try12/{args.weights}_{record}_{iteration}_end.h5")
 
 
 if __name__ == "__main__":

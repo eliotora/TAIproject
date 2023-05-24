@@ -1,0 +1,14 @@
+first training:
+epsilon=0.9
+decay=0.99
+gamma=0.9
+mem=1000
+epsilon_min=0.01
+
+rewards:
+eat=10
+dead=-10
+live=0
+
+Changes: Neurons 64,32,16 relu
+

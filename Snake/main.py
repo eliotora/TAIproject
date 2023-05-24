@@ -1,4 +1,5 @@
 import argparse
+import os
 from agent import Agent
 from gameModule import GUISnakeGame
 from genetic_snake import Snake
@@ -7,6 +8,7 @@ from dna import Dna
 import pickle
 from pathlib import Path
 import sys
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def main():
@@ -48,8 +50,7 @@ def main():
     group_algorithm.add_argument(
         "-rl",
         "--reinforcement_learning",
-        help="Reinforcement algorithm:",  # TODO: finir le help
-        default="weights.h5.h5"
+        help="Reinforcement algorithm:",
     )
 
     args = parser.parse_args()
@@ -68,8 +69,8 @@ def main():
                 weights, bias = pickle.load(f)
             agent = Snake(Dna(weights, bias))
         elif args.reinforcement_learning:
-            agent = Agent(input_size=20)
-            agent.load(Path(args.reinforcement_learning))
+            agent = Agent()
+            agent.load(args.reinforcement_learning)
 
     else:
         parser.print_help()

@@ -1,0 +1,27 @@
+first training:
+epsilon=0.9
+decay=0.99
+gamma=0.9
+mem=1000
+epsilon_min=0.01
+
+rewards:
+eat=10
+dead=-10
+live=0.1
+
+subsequent training:
+epsilon=0.005
+decay=0.99
+gamma=0.9
+mem=1000
+epsilon_min=0.005
+
+rewards:
+eat=10
+dead=-100
+live=0.01
+
+gen0: average score = 1.42, best score of resulting weights = 37 (outside training)
+gen1: not run till the end (199 games) -> weight_31_1.h5
+gen2: crash no more memory -> Reduce gain on live to 0?
