@@ -133,8 +133,9 @@ Il est aussi possible de changer certains hyperparamètres de l'entrainement de 
 permet de changer le nombres d'épisodes réalisées durant l'entrainement, 2000 étant la valeur par défaut. L'option `-w` accompagnée 
 d'un nom controlera le *coeur* du nom du fichier dans lequel les poids synaptiques seront enregistrés (le *weights* de *weights_44_0.h5*).
 L'option `-rt` permet de relancer l'entrainement à partir d'un fichier existant avec des paramètres différents par défaut
-le l'exploration sera fixée à 0 (*epsilon*) dans ce cas il faut également préciser le chemin vers le fichier de poids de départ
-par exemple:
+le l'exploration sera fixée à 0 (*epsilon*) dans ce cas il faut également préciser le chemin vers le fichier de poids de départ.
+
+Par exemple:
 ```bash
 poetry run python train_rl.py -e 2000 -w weights -rt try12/weights_82_1_200.h5
 ```

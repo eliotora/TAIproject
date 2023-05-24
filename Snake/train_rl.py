@@ -21,14 +21,14 @@ def training():
         "--weights",
         type=str,
         help="Path to weights file to save to.",
-        default="weights.h5",
+        default="weights",
     )
     parser.add_argument(
         "-e",
         "--episodes",
         type=int,
         help="Number of episodes to train on (default=10000).",
-        default=10000,
+        default=2000,
     )
     parser.add_argument(
         "-rt",
@@ -102,14 +102,14 @@ def training():
         agent.n_games += 1
 
         if i % 200 == 0:  # Backup weights every 200 runs
-            agent.model.save(f"try12/{args.weights}_{record}_{iteration}_{i}.h5")
+            agent.model.save(f"weights_rl/{args.weights}_{record}_{iteration}_{i}.h5")
 
         # Train the agent based on a random set of moves done recently (1,000,000 move registered)
         agent.train_long_memory()
 
         if score > record:  # Backup weights if the highest score is beaten
             record = score
-            agent.model.save(f"try12/{args.weights}_{record}_{iteration}.h5")
+            agent.model.save(f"weights_rl/{args.weights}_{record}_{iteration}.h5")
 
         print('Game', agent.n_games, 'Score', score, 'Record', record, 'Move number', move_nbr)
         total_score += score
@@ -118,7 +118,7 @@ def training():
     # print(score_distibution)
     print(mean_score)
     # One last save of the weights
-    agent.model.save(f"try12/{args.weights}_{record}_{iteration}_end.h5")
+    agent.model.save(f"weights_rl/{args.weights}_{record}_{iteration}_end.h5")
 
 
 if __name__ == "__main__":

@@ -110,8 +110,8 @@ class Agent:
     def fill_memory(self, previous_state, next_state, reward, done):
         """
         Fill the buffer with previous experiences
-        :param previous_state:original state
-        :param next_state:state chosen by the network
+        :param previous_state: original state
+        :param next_state: state chosen by the network
         :param reward:reward received
         :param done:boolean value to signify whether the end of an episode is reached
         """
