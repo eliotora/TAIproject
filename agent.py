@@ -107,7 +107,7 @@ class Agent:
         else:
             sample = self.memory
 
-        states, actions, rewards, next_states, dones = zip(*sample)
+        states, rewards, next_states, dones = zip(*sample)
         self.training_montage(states, rewards, next_states, dones)
         self.epsilon = max(
             self.epsilon * self.decay, self.epsilon_min
@@ -198,7 +198,7 @@ class Agent:
         # predictions = self.model.predict(input) Causes memory leaks over time
         return predictions
 
-    def fill_memory(self, state, action, reward, next_state, done):
+    def fill_memory(self, state, reward, next_state, done):
         """
         Fill the buffer with previous experiences
         :param state:original state
@@ -207,7 +207,7 @@ class Agent:
         :param next_state:state after the action
         :param done:boolean value to signify whether the end of an episode is reached
         """
-        self.memory.append((state, action, reward, next_state, done))
+        self.memory.append((state, reward, next_state, done))
 
     def save(self, path: str):
         """
