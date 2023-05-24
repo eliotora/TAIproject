@@ -62,8 +62,8 @@ class Agent:
         """
         This function take the snake game as an input, and compute different information about the
         snake environment, that will be fed to the neural network.
-        @param game: snake game object
-        @return: information the neural network take as input (representing a state)
+        ::game: snake game object
+        :return: information the neural network take as input (representing a state)
         """
         head = game.snake[0]
 
@@ -84,7 +84,7 @@ class Agent:
             # self.direction[0],
             # self.direction[1]
 
-            # # How many snakes bit in each direction
+            # How many snakes bit in each direction
             # len([part for part in game.snake if part[0] == head[0] and part[1] > head[1]]),  # Right [0, 1]
             # len([part for part in game.snake if part[0] == head[0] and part[1] < head[1]]),  # Left [0, -1]
             # len([part for part in game.snake if part[0] < head[0] and part[1] == head[1]]),  # Up [-1, 0]
@@ -97,9 +97,10 @@ class Agent:
     def train_long_memory(self, batch_size=64):
         """
         This function extract previous instances to upgrade the behavior, and update epsilon
-        @param batch_size: Number of instance used the learning
-        @return: none
+        ::batch_size: Number of instance used the learning
+        :return: none
         """
+        # Selection of "model" in the memory
         if len(self.memory) > batch_size:
             sample = random.sample(self.memory, batch_size)
         else:
@@ -114,11 +115,11 @@ class Agent:
     def training_montage(self, state, reward, next_state, done):
         """
         This function allow the learning of our agent using Q-learning and the neural network
-        @param state: Information of the environment
-        @param reward: Reward of the action done
-        @param next_state: New state of the snake after an action
-        @param done: Boolean about the state of the game (True when game finished)
-        @return: None
+        ::state: Information of the environment
+        ::reward: Reward of the action done
+        ::next_state: New state of the snake after an action
+        ::done: Boolean about the state of the game (True when game finished)
+        :return: None
         """
         state = tf.convert_to_tensor(state, dtype=tf.float32)
         reward = tf.convert_to_tensor(reward, dtype=tf.float32)
@@ -142,6 +143,7 @@ class Agent:
 
             dataset.append(list(state[i]))
             target.append(np.array(next_q))
+
         dataset = tf.convert_to_tensor(dataset)
         target = tf.convert_to_tensor(target)
 
@@ -152,8 +154,8 @@ class Agent:
     def act_train(self, state):
         """
         Train the model using random moves and predictions
-        @param state: Information about the environment of the snake
-        @return: Next move
+        :: state: Information about the environment of the snake
+        :return: next action of the snake
         """
         if random.uniform(0, 1) < self.epsilon:
             possibilities = [RIGHT, LEFT, UP, DOWN]
@@ -161,8 +163,8 @@ class Agent:
             return random.choice(possibilities)
         else:
             state0 = tf.convert_to_tensor(state, dtype=tf.float32)
-            prediction = self._predict_scores(state0)
-            move = int(tf.math.argmax(prediction[0]))
+            prediction = self._predict_scores(state0)   # Prediction with the neural network
+            move = int(tf.math.argmax(prediction[0]))   # Take the best move predicted
             final_move = [RIGHT, LEFT, UP, DOWN][move]
 
         return final_move
@@ -170,12 +172,12 @@ class Agent:
     def act_best(self, state):
         """
         Use the best possible prediction with  the model (no randomness)
-        @param state: Information about the environment of the snake
-        @return: next move
+        ::state: Information about the environment of the snake
+        :return: next action of the snake
         """
         state0 = tf.convert_to_tensor(state, dtype=tf.float32)
-        prediction = self._predict_scores(state0)
-        move = int(tf.math.argmax(prediction[0]))
+        prediction = self._predict_scores(state0)   # Prediction with the neural network
+        move = int(tf.math.argmax(prediction[0]))   # Take the best move predicted
         final_move = [RIGHT, LEFT, UP, DOWN][move]
 
         return final_move
@@ -183,15 +185,14 @@ class Agent:
     def _predict_scores(self, states):
         """
         Predict the new action of the snake using the neural network
-        @param states: Information about the environment of the snake
-        @return: Possible moves with ponderation
+        ::states: Information about the environment of the snake
+        :return: Possible moves with ponderation
         """
         input = tf.cast(tf.constant(states), dtype=tf.float32)
         if input.ndim == 1:
             input = tf.expand_dims(input, axis=0)
 
         predictions = self.model.predict_on_batch(input)
-        # predictions = self.model.predict(input)
         return predictions
 
     def fill_memory(self, state, action, reward, next_state, done):
