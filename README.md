@@ -61,7 +61,7 @@ poetry run python main.py --ai -g weights/159.snake
 ```
 ou 
 ```bash
-poetry run python main.py --ai -rl try10/weights_34_0_1000.h5
+poetry run python main.py --ai -rl try10/weights_82_1_1600.h5
 ```
 Quelques exemples de réseau de neurones pré-entrainés sont disponibles dans 
 le dossier `weights`.
@@ -137,7 +137,7 @@ le l'exploration sera fixée à 0 (*epsilon*) dans ce cas il faut également pr�
 
 Par exemple:
 ```bash
-poetry run python train_rl.py -e 2000 -w weights -rt try12/weights_82_1_200.h5
+poetry run python train_rl.py -e 2000 -w weights -rt try10/weights_82_1_1600.h5
 ```
 
 En résumé:
