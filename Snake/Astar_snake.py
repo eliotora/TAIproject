@@ -58,7 +58,7 @@ class IA_Astar:
         """
         pass
 
-    def choose_next_move(self, state):
+    def choose_next_move(self, game):
         """
             This function is called by the game instance in order to find the next move chosen by the used algorithm.
             In our case, there are 5 different algorithms : Random, SShaped, A*, A* weighted and A* reversed. All of
@@ -68,7 +68,7 @@ class IA_Astar:
                       is alive
         :return: The move chosen by the algorithm
         """
-
+        state = game.get_state()
         grid, score, alive, snake = state
         head = snake[0]
 

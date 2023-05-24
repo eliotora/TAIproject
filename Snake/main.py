@@ -50,7 +50,7 @@ def main():
     group_algorithm.add_argument(
         "-rl",
         "--reinforcement_learning",
-        help="Reinforcement algorithm:",
+        help="Reinforcement learning agent: plays a move based of trained neural network, please select weight file"
     )
 
     args = parser.parse_args()

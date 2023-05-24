@@ -193,24 +193,26 @@ class Agent:
 
 
 class ReinforcementTrainingGame(SnakeGame):
+    """
+    Special kind of game used to train the reinforcement learning agent
+    """
     def __init__(self, reward_live=0, reward_eat=10, reward_dead=-100):
         super().__init__()
-        self.reward_live = reward_live
-        self.reward_eat = reward_eat
-        self.reward_dead = reward_dead
+        self.reward_live = reward_live  # Reward given just for live one more step
+        self.reward_eat = reward_eat  # Reward given for eating a piece of food
+        self.reward_dead = reward_dead  # Reward given when dying
 
     def next_tick(self, action):
-
         reward = 0
-        self.next_move = action
-        if self.is_alive():
+        self.next_move = action  # Store the action
+        if self.is_alive():  # Compute the reward
             reward = self.reward_live
-            self.move_snake()
+            self.move_snake()  # Move the snake
             if self.foodEaten:
                 reward = self.reward_eat
             elif not self.is_alive():
                 reward = self.reward_dead
-
+        # Give the reward for the corresponding action
         reward = [reward if pos_act == action else 0 for pos_act in [RIGHT, LEFT, UP, DOWN]]
         return reward, not self.is_alive(), self.score
 

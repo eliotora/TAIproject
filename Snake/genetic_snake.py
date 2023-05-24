@@ -38,7 +38,7 @@ class Snake:
         newDna = self.dna.mix(other.dna, mutationRate)
         return Snake(newDna)
 
-    def choose_next_move(self, state):
+    def choose_next_move(self, game):
         """
         Choose a new move based on its vision.
         If the hunger of the snake is nul then return a string
@@ -47,6 +47,7 @@ class Snake:
         of the snake andother elements in the game
         Return the movement choice of the snake (tuple)
         """
+        state = game.get_state()
         vision = self.get_simplified_state(state)
         if self.hunger > 0:
             self.hunger -= 1
