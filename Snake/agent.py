@@ -85,7 +85,7 @@ class Agent:
             # self.direction[0],
             # self.direction[1]
 
-            # # How many snakes bit in each direction
+            # How many snakes bit in each direction
             # len([part for part in game.snake if part[0] == head[0] and part[1] > head[1]]),  # Right [0, 1]
             # len([part for part in game.snake if part[0] == head[0] and part[1] < head[1]]),  # Left [0, -1]
             # len([part for part in game.snake if part[0] < head[0] and part[1] == head[1]]),  # Up [-1, 0]
@@ -101,6 +101,7 @@ class Agent:
         :param batch_size: Number of instance used the learning
         :return: none
         """
+        # Selection of "model" in the memory
         if len(self.memory) > batch_size:
             sample = random.sample(self.memory, batch_size)
         else:
@@ -144,6 +145,7 @@ class Agent:
 
             dataset.append(list(state[i]))
             target.append(np.array(next_q))
+
         dataset = tf.convert_to_tensor(dataset)
         target = tf.convert_to_tensor(target)
 
@@ -154,8 +156,8 @@ class Agent:
     def act_train(self, state):
         """
         Train the model using random moves and predictions
-        @param state: Information about the environment of the snake
-        @return: Next move
+        :param state: Information about the environment of the snake
+        :return: Next move
         """
         if random.uniform(0, 1) < self.epsilon:
             possibilities = [RIGHT, LEFT, UP, DOWN]
@@ -163,8 +165,8 @@ class Agent:
             return random.choice(possibilities)
         else:
             state0 = tf.convert_to_tensor(state, dtype=tf.float32)
-            prediction = self._predict_scores(state0)
-            move = int(tf.math.argmax(prediction[0]))
+            prediction = self._predict_scores(state0)   # Prediction with the neural network
+            move = int(tf.math.argmax(prediction[0]))   # Take the best move predicted
             final_move = [RIGHT, LEFT, UP, DOWN][move]
 
         return final_move
@@ -176,8 +178,8 @@ class Agent:
         :return: next move
         """
         state0 = tf.convert_to_tensor(state, dtype=tf.float32)
-        prediction = self._predict_scores(state0)
-        move = int(tf.math.argmax(prediction[0]))
+        prediction = self._predict_scores(state0)   # Prediction with the neural network
+        move = int(tf.math.argmax(prediction[0]))   # Take the best move predicted
         final_move = [RIGHT, LEFT, UP, DOWN][move]
 
         return final_move
