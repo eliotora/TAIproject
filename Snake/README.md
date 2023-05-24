@@ -50,13 +50,18 @@ poetry run python main.py --ai -a
 ```
 l'option `--ai` indique au jeu de se lancer en mode IA, ensuite la 2ème option
 indique le type d'IA, cela peut être `-a` pour A\*, `-s` pour le chemin en forme
-de S, `-g` pour le réseau de neurone entrainé pour algorithme génétique.
+de S, `-g` pour le réseau de neurone entrainé pour algorithme génétique, `-rl` pour
+le réseau de neurone entrainé par reinforcement learning.
 
-Cette dernière option (`-g`) requiert l'ajout d'un argument à la commande pour indiquer
+Ces dernières options (`-g` et `-rl`) requièrent l'ajout d'un argument à la commande pour indiquer
 le modèle de réseau de neurone à utiliser, par exemple:
 
 ```bash
 poetry run python main.py --ai -g weights/159.snake 
+```
+ou 
+```bash
+poetry run python main.py --ai -rl try10/weights_34_0_1000.h5
 ```
 Quelques exemples de réseau de neurones pré-entrainés sont disponibles dans 
 le dossier `weights`.
@@ -79,6 +84,7 @@ optional arguments:
 ```
 
 ### Entrainement
+#### Algorithme génétique
 
 Pour entrainer un nouveau réseau de neurone pour le snake, il faut lancer le
 programme `train.py`, par exemple:
@@ -116,6 +122,42 @@ optional arguments:
 
 ```
 
+### Reinforcement Learning
+Pour entainer un nouvel agent via reinforcement learning pour Snake, il faut lancer le program `train_rl.py`, par exemple:
+```bash
+poetry run python train_rl.py
+```
+L'évolution du réseau de neurones sera stocké par record dans le dossier weights_rl, ainsi par exemple,
+le fichier weights_44_0.h5 correspond à un modèle qui a réussit à atteindre un record de 44.
+
+Il est aussi possible de changer certains hyperparamètres de l'entrainement de l'agent. L'option `-e`
+permet de changer le nombres d'épisodes réalisées durant l'entrainement, 2000 étant la valeur par défaut. L'option `-w` accompagnée 
+d'un nom controlera le *coeur* du nom du fichier dans lequel les poids synaptiques seront enregistrés (le *weights* de *weights_44_0.h5*).
+L'option `-rt` permet de relancer l'entrainement à partir d'un fichier existant avec des paramètres différents par défaut
+le l'exploration sera fixée à 0 (*epsilon*) dans ce cas il faut également préciser le chemin vers le fichier de poids de départ
+par exemple:
+```bash
+poetry run python train_rl.py -e 2000 -w weights -rt try12/weights_82_1_200.h5
+```
+
+En résumé:
+```
+usage: train.py [-h] [-e EPISODE] [-w FILENAME] [-rt INITWEIGHTS]
+
+Snake game, training program for neural net using reinforcement learning
+
+optional arguments:
+    -h, --help          show this help message and exit
+    -e EPISODE, --episodes EPISODE
+                        defines the number of episodes on which the training will be done, default 2000
+    -w FILENAME, --weights FILENAME
+                        define the base name for the file in which the neuronal weights will be stored periodically
+    -rt INITWEIGHTS, --retrain INITWEIGHTS
+                        define the path to the file used to initialise the neural network weights for retraining
+```
+
 ![snake screen](../assets/img/snake.png)
+
+
 
 [ia-gh]: https://github.com/iridia-ulb/AI-book

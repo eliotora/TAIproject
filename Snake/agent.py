@@ -1,9 +1,7 @@
 import random
 from collections import deque
-import pygame
 
 import numpy as np
-from numpy import sqrt
 import tensorflow as tf
 
 from gameModule import GUISnakeGame, SnakeGame
@@ -12,10 +10,6 @@ from gameModule import (
     LEFT,
     DOWN,
     UP,
-    SNAKE_CHAR,
-    EMPTY_CHAR,
-    FOOD_CHAR,
-    WALL_CHAR,
 )
 
 
@@ -27,7 +21,7 @@ class Agent:
 
     def __init__(
             self,
-            input_size=12,
+            input_size=8,
             epsilon=0.9,
             decay=0.9995,
             gamma=0.9,
@@ -35,7 +29,7 @@ class Agent:
             opt_fct="adam",
             mem=1000000,
             metrics=None,
-            epsilon_min=0.01
+            epsilon_min=0.1
     ):
         tf.keras.utils.disable_interactive_logging()
         self.n_games = 0
@@ -57,8 +51,8 @@ class Agent:
         self.model = tf.keras.models.Sequential()
         self.model.add(tf.keras.layers.Dense(64, activation="relu", input_shape=(input_size,)))
         # self.model.add(tf.keras.layers.Dense(64, activation="relu"))
+        self.model.add(tf.keras.layers.Dense(64, activation="relu"))
         self.model.add(tf.keras.layers.Dense(32, activation="relu"))
-        self.model.add(tf.keras.layers.Dense(16, activation="relu"))
         self.model.add(tf.keras.layers.Dense(4, activation="linear"))
         self.model.compile(
             optimizer=self.opt_fct, loss=self.loss_fct, metrics=self.metrics
@@ -80,18 +74,21 @@ class Agent:
             game.food[0] < head[0],  # food up
             game.food[0] > head[0],  # food down
 
-            # How many snakes bit in each direction
-            len([part for part in game.snake if part[0] == head[0] and part[1] > head[1]]),  # Right [0, 1]
-            len([part for part in game.snake if part[0] == head[0] and part[1] < head[1]]),  # Left [0, -1]
-            len([part for part in game.snake if part[0] < head[0] and part[1] == head[1]]),  # Up [-1, 0]
-            len([part for part in game.snake if part[0] > head[0] and part[1] == head[1]])  # Down [1, 0]
+            # Last movement
+            # self.direction[0],
+            # self.direction[1]
+
+            # # How many snakes bit in each direction
+            # len([part for part in game.snake if part[0] == head[0] and part[1] > head[1]]),  # Right [0, 1]
+            # len([part for part in game.snake if part[0] == head[0] and part[1] < head[1]]),  # Left [0, -1]
+            # len([part for part in game.snake if part[0] < head[0] and part[1] == head[1]]),  # Up [-1, 0]
+            # len([part for part in game.snake if part[0] > head[0] and part[1] == head[1]])  # Down [1, 0]
 
             # Idea: Distance to food: reward if it lowers
         ]
-
         return np.array(state, dtype=int)
 
-    def train_long_memory(self, batch_size=128):
+    def train_long_memory(self, batch_size=64):
         if len(self.memory) > batch_size:
             sample = random.sample(self.memory, batch_size)
         else:
@@ -196,7 +193,7 @@ class Agent:
 
 
 class ReinforcementTrainingGame(SnakeGame):
-    def __init__(self, reward_live=0, reward_eat=10, reward_dead=-10):
+    def __init__(self, reward_live=0, reward_eat=10, reward_dead=-100):
         super().__init__()
         self.reward_live = reward_live
         self.reward_eat = reward_eat
@@ -220,7 +217,7 @@ class ReinforcementTrainingGame(SnakeGame):
 def main():
     game = GUISnakeGame()
     game.init_pygame()
-    agent = Agent(input_size=8)
+    agent = Agent()
 
     while game.is_running():
         game.next_tick(agent)

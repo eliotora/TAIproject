@@ -1,0 +1,15 @@
+first training:
+epsilon=0.9
+decay=0.99
+gamma=0.9
+mem=1000
+epsilon_min=0.1
+
+rewards:
+eat=10
+dead=-100
+live=0
+
+Changes: Back to 8 perceptions parameters
+
+gen1: from weights_34_0_end.h5 with less bad reward on dying (-10)
